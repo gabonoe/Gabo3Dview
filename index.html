@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gabo 3D Viewer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Three.js via Import Map (CDN) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- ─── 3D Canvas ─── -->
+  <canvas id="viewer-canvas"></canvas>
+
+  <!-- ─── Side Panel ─── -->
+  <div id="side-panel">
+
+    <!-- Header -->
+    <div class="panel-header">
+      <img src="assets/logo.png" alt="Gabo 3D Viewer" class="panel-logo" />
+      <p>Arrastra archivos .glb / .exr o usa los botones</p>
+    </div>
+
+    <!-- Load Section -->
+    <div class="panel-section">
+      <h2>Archivos</h2>
+      <button class="btn" id="btn-load-model">
+        <span class="icon">📦</span> Cargar Modelo GLB
+      </button>
+      <h2 style="margin-top:12px;">Ambiente Luminoso</h2>
+      <select id="env-select" class="env-select">
+        <option value="evening" selected>🌇 Camino al Atardecer</option>
+        <option value="studio">🏢 Estudio Profesional</option>
+        <option value="sunset">🌅 Atardecer Industrial</option>
+        <option value="sky">☁️ Cielo Despejado</option>
+        <option value="night">🌌 Noche Estrellada</option>
+        <option value="city">🌃 Ciudad Futurista</option>
+        <option value="custom">📂 Cargar EXR personalizado...</option>
+      </select>
+      <input type="file" id="glb-input" class="file-input-hidden" accept=".glb,.gltf" />
+      <input type="file" id="hdri-input" class="file-input-hidden" accept=".exr" />
+    </div>
+
+    <!-- Transform Section -->
+    <div class="panel-section">
+      <h2>Transformar</h2>
+      <div class="btn-group">
+        <button class="btn btn-transform active" data-mode="translate">
+          ✥ Mover
+        </button>
+        <button class="btn btn-transform" data-mode="rotate">
+          ↻ Rotar
+        </button>
+        <button class="btn btn-transform" data-mode="scale">
+          ⤡ Escalar
+        </button>
+      </div>
+    </div>
+
+    <!-- Camera Section -->
+    <div class="panel-section">
+      <h2>Cámara</h2>
+      <button class="btn" id="btn-reset-camera">
+        <span class="icon">🎯</span> Resetear Cámara
+      </button>
+      <button class="btn" id="btn-reset-model">
+        <span class="icon">🔄</span> Resetear Modelo
+      </button>
+    </div>
+
+    <!-- Display Section -->
+    <div class="panel-section">
+      <h2>Visualización</h2>
+
+      <div class="toggle-row">
+        <label>Grid</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-grid" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label>Ejes</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-axes" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label>HDRI como fondo</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-hdri-bg" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label>Auto-Rotación</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-auto-rotate" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label>Holograma</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-hologram" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label>Wireframe</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-wireframe" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Exposure Section -->
+    <div class="panel-section">
+      <h2>Exposición</h2>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <input type="range" id="slider-exposure" min="0.1" max="3" step="0.05" value="1"
+               style="flex:1; accent-color: #e94560;" />
+        <span id="exposure-value" style="font-size:12px; min-width:36px; text-align:right;">1.00</span>
+      </div>
+    </div>
+
+    <!-- Shortcuts -->
+    <div class="panel-section" style="border-bottom:none;">
+      <h2>Atajos de Teclado</h2>
+      <div style="font-size:11px; color:#a0a0b0; line-height:1.8;">
+        <b>G</b> — Mover &nbsp;|&nbsp; <b>R</b> — Rotar &nbsp;|&nbsp; <b>S</b> — Escalar<br/>
+        <b>F</b> — Enfocar modelo<br/>
+        <b>Esc</b> — Deseleccionar
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── Panel Toggle Button ─── -->
+  <button id="panel-toggle">◀</button>
+
+  <!-- ─── Loading Overlay ─── -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p>Cargando...</p>
+  </div>
+
+  <!-- ─── Drag & Drop Overlay ─── -->
+  <div id="drop-zone-overlay">
+    <p>Suelta el archivo aquí (.glb / .exr)</p>
+  </div>
+
+  <!-- ─── Info Bar ─── -->
+  <div id="info-bar">
+    Renderer: WebGL | Tone Mapping: ACES Filmic
+  </div>
+
+  <!-- ─── App Script ─── -->
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
